@@ -130,6 +130,7 @@ class BluetoothDelegate extends BluetoothLowEnergy.BleDelegate {
 
 		if(_state == PAIRING && STATUS_SUCCESS == status) {
 			_state = INIT;
+			System.println(Lang.format("enabling notifications for characteristic on device $1$", [characteristic.getService().getDevice().getName()]));
 			var desc = _tempChar.getDescriptor(BluetoothLowEnergy.cccdUuid());
 			desc.requestWrite([0x1, 0x0]b);
 		}
@@ -149,10 +150,14 @@ class BluetoothDelegate extends BluetoothLowEnergy.BleDelegate {
 			
 			_service = device.getService(TENERGY_SERVICE);
 			
+			System.println(Lang.format("onConnectedStateChanged (device param) device: $1$", [device.getName()]));
+			
 			//make sure the device has the service we're looking for
 			if(null == _service) {
 				return;
 			}
+			
+			System.println(Lang.format("onConnectedStateChanged (service.getDevice()) device: $1$", [_service.getDevice().getName()]));
 			
 			//get the pairing characteristic of the service
 			var pairingChar = _service.getCharacteristic(TENERGY_PAIRING_CHARACTERISTIC);
@@ -162,6 +167,7 @@ class BluetoothDelegate extends BluetoothLowEnergy.BleDelegate {
 			
 			//send the pairing key
 			if(null != pairingChar) {
+				System.println(Lang.format("onConnectedStateChanged (char.getService().getDevice().getName()) device: $1$", [pairingChar.getService().getDevice().getName()]));
 				//the rest of the operation is chained off the callbacks started by this write operation
 				pairingChar.requestWrite(TENERGY_AUTO_PAIR_KEY, {});
 			}
