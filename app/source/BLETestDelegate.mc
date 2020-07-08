@@ -1,6 +1,7 @@
 using Toybox.WatchUi;
 using Toybox.BluetoothLowEnergy;
 using Toybox.System;
+using TenergySolis;
 
 class BLETestDelegate extends WatchUi.BehaviorDelegate {
 
@@ -8,7 +9,7 @@ class BLETestDelegate extends WatchUi.BehaviorDelegate {
 	
     function initialize() {
         BehaviorDelegate.initialize();
-        BluetoothLowEnergy.setDelegate(new BluetoothDelegate(self));
+        BluetoothLowEnergy.setDelegate(new TenergySolis.BluetoothDelegate(self));
         BluetoothLowEnergy.setScanState(BluetoothLowEnergy.SCAN_STATE_SCANNING);
     }
 
@@ -23,5 +24,8 @@ class BLETestDelegate extends WatchUi.BehaviorDelegate {
     	WatchUi.requestUpdate();
     }
 
+	function onScanResult(result) {
+	
+	}
 }
 

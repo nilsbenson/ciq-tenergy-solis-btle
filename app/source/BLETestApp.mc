@@ -20,4 +20,8 @@ class BLETestApp extends Application.AppBase {
         return [ new BLETestView(), new BLETestDelegate() ];
     }
 
+	(:background)
+	function dummy() {
+	
+	}
 }
