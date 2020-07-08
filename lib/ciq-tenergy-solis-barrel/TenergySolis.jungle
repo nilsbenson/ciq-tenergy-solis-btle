@@ -1,4 +1,2 @@
-project.manifest = manifest.xml
-
-
+project.manifest = TenergySolisManifest.xml
 

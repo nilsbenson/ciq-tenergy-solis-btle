@@ -50,7 +50,6 @@
             <iq:product id="vivoactive4s"/>
         </iq:products>
         <iq:permissions>
-            <iq:uses-permission id="Background"/>
             <iq:uses-permission id="BluetoothLowEnergy"/>
         </iq:permissions>
         <iq:languages>
