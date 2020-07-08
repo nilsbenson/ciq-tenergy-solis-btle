@@ -1,0 +1,6 @@
+project.manifest = manifest.xml
+
+TenergySolis = [C:\rcs\garmin\ciq-tenergy-solis-btle\lib\ciq-tenergy-solis-barrel\monkey.jungle]
+base.barrelPath = $(base.barrelPath);$(TenergySolis)
+
+
