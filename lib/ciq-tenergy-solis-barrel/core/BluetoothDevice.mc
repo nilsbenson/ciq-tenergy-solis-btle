@@ -14,6 +14,11 @@ module TenergySolis {
 			return _scanResult;
 		}
 		
+		function pairAndConnect() {
+			System.println("pairing / connecting to BTLE device");
+			BluetoothLowEnergy.pairDevice(_scanResult);
+		}
+		
 		//convert C to F - device sends degrees as C over bluetooth, regardless of the display setting on the device
 		static function degCtoF(degC) {
 			return (degC * 1.8) + 32; 	

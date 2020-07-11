@@ -33,13 +33,15 @@ module TenergySolis {
 	
 	class BluetoothDelegate extends BluetoothLowEnergy.BleDelegate {
 	
-		hidden var _device = null;			//the device we're connected to
+		//hidden var _device = null;			//the device we're connected to
 		hidden var _service = null;			//the service we're communicating with
 		hidden var _tempChar;				//ref to the characteristic that provides temperature data
 		hidden var _state = PAIRING;		//state of the delegate - PAIRING -> INIT -> READ -> PAIRING
 		hidden var _onTempChanged = null;		//callback method to allow notifying the UI that temperature has changed
 		hidden var _onScanResult = null;	//callback to handle notifications from the BTLE delegate that there's a scan result
-		hidden var _pairedDevices = null; 	//list of devices we've already paired with so if we find a matching scanresult we can just connect to it
+		hidden var _onStateChanged = null; //callback to notify external listeners of a state change in the delegate
+		//hidden var _pairedDevices = null; 	//list of devices we've already paired with so if we find a matching scanresult we can just connect to it
+		hidden var _scanResults = [];		//list of unique devices found during a scan operation
 		
 		//we start in the pairing state, and write the auto-pair key to the pairing characteristic
 		//once that's done, we transition to the INIT state and tell the temp characteristic to enable notification
@@ -51,12 +53,10 @@ module TenergySolis {
 			READ
 		}
 		
-		function initialize(interface) {
+		function initialize() {
 			BleDelegate.initialize();
 			
-			_onTempChanged = interface.method(:tempChanged);
-			_onScanResult = interface.method(:onScanResult);
-			_pairedDevices = BluetoothLowEnergy.getPairedDevices();
+			//_pairedDevices = BluetoothLowEnergy.getPairedDevices();
 			
 			//bluetooth API on garmin REQUIRES us to register which services, characteristics, and descriptors we will be using
 			//otherwise they will not be available to use when we call getService()/getCharacteristic()/getDescriptor()
@@ -85,6 +85,33 @@ module TenergySolis {
 	
 	       // Make the registerProfile call
 	       BluetoothLowEnergy.registerProfile( profile );
+		}
+		
+		function getState() {
+			return _state;
+		}
+		
+		hidden function setState(state) {
+			_state = state;
+			
+			if(null != _onStateChanged) {
+				_onStateChanged.invoke(_state);	
+			}
+		}
+		
+		function subscribe(interface) {
+		
+			if(interface has :onTempChanged) {			
+				_onTempChanged = interface.method(:onTempChanged);
+			}
+			
+			if(interface has :onScanResult) {
+				_onScanResult = interface.method(:onScanResult);
+			}
+			
+			if(interface has :onStateChanged) {
+				_onStateChanged = interface.method(:onStateChanged);
+			}
 		}
 		
 		//handles incoming data from characteristics on the tenergy service via the NOTIFY bluetooth option
@@ -126,7 +153,7 @@ module TenergySolis {
 			System.println(Lang.format("char write: $1$", [status]));
 	
 			if(_state == PAIRING && STATUS_SUCCESS == status) {
-				_state = INIT;
+				setState(INIT);
 				System.println(Lang.format("enabling notifications for characteristic on device $1$", [characteristic.getService().getDevice().getName()]));
 				var desc = _tempChar.getDescriptor(BluetoothLowEnergy.cccdUuid());
 				desc.requestWrite([0x1, 0x0]b);
@@ -172,7 +199,7 @@ module TenergySolis {
 			else {
 			
 				//on disconnect start over
-				_state = PAIRING;
+				setState(PAIRING);
 				System.println("disconnected");
 			}
 		
@@ -189,15 +216,15 @@ module TenergySolis {
 		function onDescriptorWrite(descriptor, status) {
 			System.println(Lang.format("desc write $1$: $2$", [descriptor.getUuid().toString(), status]));
 			
-			if(_state == INIT && STATUS_SUCCESS == status) {
-				_state = READ;
+			if(getState() == INIT && STATUS_SUCCESS == status) {
+				setState(READ);
 				var control = _service.getCharacteristic(TENERGY_COMMAND_CHARACTERISTIC);
 				control.requestWrite([11, 1, 0, 0, 0, 0]b, {:writeType => BluetoothLowEnergy.WRITE_TYPE_WITH_RESPONSE});
 			}
 		}
 		
 		function onProfileRegister(uuid, status) {
-			System.println("onprofileregister()");
+			//System.println("onprofileregister()");
 		}
 		
 		//results from scanning for devices. We use a terrible "hueristic" to find device(s) we're interested in
@@ -207,10 +234,10 @@ module TenergySolis {
 
 			var result = results.next();
 			
-			if(null != _device) {
+/*			if(null != _device) {
 				return;
 			}
-			
+*/			
 			while(null != result) {
 			
 				System.println("========");
@@ -235,7 +262,8 @@ module TenergySolis {
 						//this whole method (onScanResults) is garbage so don't read too much into it
 						try {
 							if(!self.hasDevice(result)) {
-								_device = BluetoothLowEnergy.pairDevice(result);
+								//_device = BluetoothLowEnergy.pairDevice(result);
+								emitScanResult(new BluetoothDevice(result));
 							}
 						}
 						catch(DevicePairException) {
@@ -243,7 +271,7 @@ module TenergySolis {
 						} 
 						
 						System.println(Lang.format("service: $1$ TENERGY_SERVICE: $2$", [service.toString(), TENERGY_SERVICE.toString()]));
-						System.println(_device.getName());	
+						//System.println(_device.getName());	
 					}
 					
 					service = services.next();
@@ -253,18 +281,33 @@ module TenergySolis {
 			}
 		}
 		
+		function emitScanResult(result) {
+		
+			System.println("emitScanResult()");
+			
+			if(null != _onScanResult) {
+				_onScanResult.invoke(result);
+			}
+		}
+		
 		function onScanStateChange(state, status) {
 			System.println(Lang.format("Scan state changed: $1$ - $2$", [state, status])); 	
 		}
 		
 		function hasDevice(device) {
 		
-			for(var paired = _pairedDevices.next(); paired != null; paired = _pairedDevices.next()) {
+			/*for(var paired = _pairedDevices.next(); paired != null; paired = _pairedDevices.next()) {
 				if(paired.isSameDevice(device)) {
 					return true;
 				}
-			}
+			}*/
 		
+			for(var i = 0; i < _scanResults.size(); i++) {
+				if(_scanResults[i].isSameDevice(device)) {
+					return true;
+				}
+			}
+			
 			return false;
 		}
 	}
