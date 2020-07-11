@@ -40,8 +40,7 @@ module TenergySolis {
 		hidden var _onTempChanged = null;		//callback method to allow notifying the UI that temperature has changed
 		hidden var _onScanResult = null;	//callback to handle notifications from the BTLE delegate that there's a scan result
 		hidden var _onStateChanged = null; //callback to notify external listeners of a state change in the delegate
-		//hidden var _pairedDevices = null; 	//list of devices we've already paired with so if we find a matching scanresult we can just connect to it
-		hidden var _scanResults = [];		//list of unique devices found during a scan operation
+		hidden var _connectedDevice = null; //the device we're currently connect to / trying to connect to
 		
 		//we start in the pairing state, and write the auto-pair key to the pairing characteristic
 		//once that's done, we transition to the INIT state and tell the temp characteristic to enable notification
@@ -99,6 +98,14 @@ module TenergySolis {
 			}
 		}
 		
+		function getConnectedDevice() {
+			return _connectedDevice;
+		}
+		
+		function setConnectedDevice(device) {
+			_connectedDevice = device;
+		}
+		
 		function subscribe(interface) {
 		
 			if(interface has :onTempChanged) {			
@@ -117,21 +124,15 @@ module TenergySolis {
 		//handles incoming data from characteristics on the tenergy service via the NOTIFY bluetooth option
 		function onCharacteristicChanged(characteristic, value) {
 			System.println(Lang.format("char changed $1$", [value]));
-			
-			var output = "";
+
+			var temps = new[6];
 			
 			for(var i = 0; i < 6; i++) {
-				var temp = (value.decodeNumber(Lang.NUMBER_FORMAT_SINT16, { :offset => i * 2 }) / 10);
-				var str = "";
-				if(temp <= 0) {
-					str = Lang.format("PROBE $1$: not connected", [i]);
-				}
-				else {
-					str = Lang.format("PROBE $1$: $2$ degC $3$ degF", [i, temp, BluetoothDevice.degCtoF(temp)] );
-				}
-				
-				System.println(str);
-				output += (str + "\n");
+				temps[i] = (value.decodeNumber(Lang.NUMBER_FORMAT_SINT16, { :offset => i * 2 }) / 10);
+			}
+			
+			if(null != _connectedDevice) {
+				_connectedDevice.setTemp(temps);
 			}
 			
 			if(null != _onTempChanged) {
@@ -261,17 +262,13 @@ module TenergySolis {
 						//wrap a try/catch around it since once we've successfully paired this will throw an exception
 						//this whole method (onScanResults) is garbage so don't read too much into it
 						try {
-							if(!self.hasDevice(result)) {
-								//_device = BluetoothLowEnergy.pairDevice(result);
-								emitScanResult(new BluetoothDevice(result));
-							}
+							emitScanResult(new BluetoothDevice(result, self));
 						}
 						catch(DevicePairException) {
 							System.println("device probably already paired");
 						} 
 						
 						System.println(Lang.format("service: $1$ TENERGY_SERVICE: $2$", [service.toString(), TENERGY_SERVICE.toString()]));
-						//System.println(_device.getName());	
 					}
 					
 					service = services.next();
@@ -294,22 +291,6 @@ module TenergySolis {
 			System.println(Lang.format("Scan state changed: $1$ - $2$", [state, status])); 	
 		}
 		
-		function hasDevice(device) {
-		
-			/*for(var paired = _pairedDevices.next(); paired != null; paired = _pairedDevices.next()) {
-				if(paired.isSameDevice(device)) {
-					return true;
-				}
-			}*/
-		
-			for(var i = 0; i < _scanResults.size(); i++) {
-				if(_scanResults[i].isSameDevice(device)) {
-					return true;
-				}
-			}
-			
-			return false;
-		}
 	}
 
 }
