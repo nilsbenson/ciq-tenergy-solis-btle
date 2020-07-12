@@ -1,2 +1,3 @@
+(:btle)
 module TenergySolis {
 }

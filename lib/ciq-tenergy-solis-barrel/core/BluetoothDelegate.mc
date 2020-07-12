@@ -1,6 +1,7 @@
 using Toybox.System;
 using Toybox.BluetoothLowEnergy;
 
+(:btle)
 module TenergySolis {
 
 	/*
@@ -291,6 +292,12 @@ module TenergySolis {
 			System.println(Lang.format("Scan state changed: $1$ - $2$", [state, status])); 	
 		}
 		
+		function dispose() {
+			if(null != _connectedDevice) {
+				_connectedDevice.disconnect();
+				_connectedDevice = null;
+			}
+		}
 	}
 
 }

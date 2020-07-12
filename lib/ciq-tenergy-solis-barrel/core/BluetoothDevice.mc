@@ -1,6 +1,7 @@
 using Toybox;
 using Toybox.BluetoothLowEnergy;
 
+(:btle)
 module TenergySolis {
 
 	enum {
@@ -28,6 +29,13 @@ module TenergySolis {
 			System.println("pairing / connecting to BTLE device");
 			_device = BluetoothLowEnergy.pairDevice(_scanResult);
 			_delegate.setConnectedDevice(self);
+		}
+		
+		function disconnect() {
+			if(null != _device) {
+				BluetoothLowEnergy.unpairDevice(_device);
+				_device = null;
+			}
 		}
 		
 		function setTemp(temps) {

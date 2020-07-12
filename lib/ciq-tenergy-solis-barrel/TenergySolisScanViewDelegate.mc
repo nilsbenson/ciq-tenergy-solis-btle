@@ -1,6 +1,7 @@
 using Toybox;
 using Toybox.WatchUi;
 
+(:btle)
 module TenergySolis {
 
 	class TenergySolisScanViewDelegate extends WatchUi.View {
