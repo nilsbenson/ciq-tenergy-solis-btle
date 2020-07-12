@@ -15,7 +15,7 @@ using Toybox.System;
 	value - the value supplied by the emitter to be passed to the listener
 
 */
-
+(:btle)
 module TenergySolis {
 	public class SimpleCallbackEvent {
 	
