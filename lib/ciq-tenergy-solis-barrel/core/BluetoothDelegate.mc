@@ -84,7 +84,12 @@ module TenergySolis {
 	       };
 	
 	       // Make the registerProfile call
-	       BluetoothLowEnergy.registerProfile( profile );
+	       try {
+		       BluetoothLowEnergy.registerProfile( profile );
+		   }
+		   catch (ex) {
+		   		System.println("BluetoothLowEnergy.registerProfile Exception Caught.");
+		   }
 		}
 		
 		function getState() {
