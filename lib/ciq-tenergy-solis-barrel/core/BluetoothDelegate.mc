@@ -4,6 +4,36 @@ using Toybox.BluetoothLowEnergy;
 (:btle)
 module TenergySolis {
 
+	function initialize() {
+		//bluetooth API on garmin REQUIRES us to register which services, characteristics, and descriptors we will be using
+		//otherwise they will not be available to use when we call getService()/getCharacteristic()/getDescriptor()
+		//basically we have to register up-front what we intend to use
+		
+		//so in this case we will use the FFF0 service, and on that service we're interested in the characteristics exposed for TEMP/COMMAND/PAIRING
+		//for each of these characteristics we will want access to the characteristic control descriptor (cccdUuid)
+		 
+		 var profile = {
+           :uuid => TENERGY_SERVICE,
+           :characteristics => [ 
+				{
+                   :uuid => TENERGY_TEMP_CHARACTERISTIC,     // UUID of the characteristic that provides temperatures
+                   :descriptors => [ BluetoothLowEnergy.cccdUuid()] 
+                },
+				{
+                   :uuid => TENERGY_COMMAND_CHARACTERISTIC,     // UUID of the characteristic that acts as the "control" or "command" channel
+                   :descriptors => [ BluetoothLowEnergy.cccdUuid()] 
+                },
+				{
+                   :uuid => TENERGY_PAIRING_CHARACTERISTIC,     // UUID of the pairing characteristic - required so we can write the pairing key to it
+                   :descriptors => [ BluetoothLowEnergy.cccdUuid()] 
+                },
+           ]
+       };
+
+       // Make the registerProfile call
+       BluetoothLowEnergy.registerProfile( profile );
+	}
+	
 	/*
 	
 		- The CIQ bluetooth stack doesn't understand "standard" 16-bit UUIDs so we have to use the full formal UUID to get things working.
@@ -57,39 +87,6 @@ module TenergySolis {
 			BleDelegate.initialize();
 			
 			//_pairedDevices = BluetoothLowEnergy.getPairedDevices();
-			
-			//bluetooth API on garmin REQUIRES us to register which services, characteristics, and descriptors we will be using
-			//otherwise they will not be available to use when we call getService()/getCharacteristic()/getDescriptor()
-			//basically we have to register up-front what we intend to use
-			
-			//so in this case we will use the FFF0 service, and on that service we're interested in the characteristics exposed for TEMP/COMMAND/PAIRING
-			//for each of these characteristics we will want access to the characteristic control descriptor (cccdUuid)
-			 
-			 var profile = {
-	           :uuid => TENERGY_SERVICE,
-	           :characteristics => [ 
-					{
-	                   :uuid => TENERGY_TEMP_CHARACTERISTIC,     // UUID of the characteristic that provides temperatures
-	                   :descriptors => [ BluetoothLowEnergy.cccdUuid()] 
-	                },
-					{
-	                   :uuid => TENERGY_COMMAND_CHARACTERISTIC,     // UUID of the characteristic that acts as the "control" or "command" channel
-	                   :descriptors => [ BluetoothLowEnergy.cccdUuid()] 
-	                },
-					{
-	                   :uuid => TENERGY_PAIRING_CHARACTERISTIC,     // UUID of the pairing characteristic - required so we can write the pairing key to it
-	                   :descriptors => [ BluetoothLowEnergy.cccdUuid()] 
-	                },
-	           ]
-	       };
-	
-	       // Make the registerProfile call
-	       try {
-		       BluetoothLowEnergy.registerProfile( profile );
-		   }
-		   catch (ex) {
-		   		System.println("BluetoothLowEnergy.registerProfile Exception Caught.");
-		   }
 		}
 		
 		function getState() {
